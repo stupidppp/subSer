@@ -64,7 +64,6 @@ func (this *SubServer) AddChannel(chName string) (pre *Channel, cur *Channel) {
 }
 
 func (this *SubServer) Subscrible(chName string, cli *Client) {
-	// 0 用户重复订阅
 	if cli.ContainChannel(chName) {
 		return
 	}
