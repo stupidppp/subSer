@@ -15,7 +15,6 @@ func main() {
 	defer server.Stop()
 	//syncTest()
 	currencyTest()
-
 	Wait()
 }
 
