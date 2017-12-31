@@ -13,13 +13,12 @@ var server *SubServer
 func main() {
 	server = NewSubServer()
 	defer server.Stop()
-	//syncTest()
-	currencyTest()
+	syncTest()
+	//currencyTest()
 	// 捕获退出信号
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 	<-signalChan
-
 }
 
 func syncTest() {
