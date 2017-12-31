@@ -89,6 +89,20 @@ func (ch *Channel) DeleteClient(c *Client) {
 	ch.lock.Unlock()
 }
 
+func (ch *Channel) GetClient(uname string) *Client {
+	if uname == "" {
+		return nil
+	}
+
+	ch.lock.RLock()
+	defer ch.lock.RUnlock()
+	c, found := ch.clients[uname]
+	if found {
+		return c
+	}
+	return nil
+}
+
 func (ch *Channel) Length() int {
 	ch.lock.RLock()
 	defer ch.lock.RUnlock()
