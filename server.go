@@ -17,8 +17,11 @@ func NewSubServer() *SubServer {
 
 func (this *SubServer) Stop() {
 	this.lock.Lock()
-	for _, ch := range this.channels {
-		ch.Close()
+	for name, ch := range this.channels {
+		if ch.ExitAndSet() {
+			ch.Close()
+		}
+		this.channels[name] = nil
 	}
 	this.lock.Unlock()
 }
@@ -64,6 +67,7 @@ func (this *SubServer) AddChannel(chName string) (pre *Channel, cur *Channel) {
 }
 
 func (this *SubServer) Subscrible(chName string, cli *Client) {
+	// 用户重复订阅
 	if cli.ContainChannel(chName) {
 		return
 	}

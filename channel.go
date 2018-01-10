@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
+	"time"
 )
 
 type Channel struct {
@@ -12,6 +14,11 @@ type Channel struct {
 	quitChan chan bool          // 退出提示
 	wg       sync.WaitGroup     // 监听发送队列的服务
 	lock     sync.RWMutex
+	exit     uint32 // 退出标记
+}
+
+func (ch *Channel) ExitAndSet() bool {
+	return atomic.CompareAndSwapUint32(&ch.exit, 0, 1)
 }
 
 func NewChannel(name string) *Channel {
@@ -27,15 +34,24 @@ func (ch *Channel) Start() {
 	go ch.handleNotify()
 }
 
+// thread safe
 func (ch *Channel) Close() {
-	close(ch.quitChan)
-	ch.wg.Wait()
+	if ch.ExitAndSet() {
+		fmt.Println("CLOSE")
+		if ch.Length() <= 0 {
+			close(ch.quitChan)
+		} else {
+			close(ch.msg) // 继续发送队列剩余的消息
+		}
+		ch.wg.Wait()
+	}
 }
 
 func (ch *Channel) Notify(msg string) {
 	defer func() {
 		recover()
 	}()
+	// may be close channel panic
 	ch.msg <- msg
 }
 
@@ -93,7 +109,6 @@ func (ch *Channel) GetClient(uname string) *Client {
 	if uname == "" {
 		return nil
 	}
-
 	ch.lock.RLock()
 	defer ch.lock.RUnlock()
 	c, found := ch.clients[uname]
@@ -102,6 +117,7 @@ func (ch *Channel) GetClient(uname string) *Client {
 	}
 	return nil
 }
+
 
 func (ch *Channel) Length() int {
 	ch.lock.RLock()
