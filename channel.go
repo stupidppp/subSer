@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 	"sync/atomic"
-	"time"
 )
 
 type Channel struct {
@@ -14,7 +13,7 @@ type Channel struct {
 	quitChan chan bool          // 退出提示
 	wg       sync.WaitGroup     // 监听发送队列的服务
 	lock     sync.RWMutex
-	exit     uint32 // 退出标记
+	exit     uint32 // 结束标记
 }
 
 func (ch *Channel) ExitAndSet() bool {
@@ -27,6 +26,7 @@ func NewChannel(name string) *Channel {
 		clients:  make(map[string]*Client, 32),
 		msg:      make(chan string, 100),
 		quitChan: make(chan bool, 1),
+		exit:     uint32(0),
 	}
 }
 
@@ -37,7 +37,6 @@ func (ch *Channel) Start() {
 // thread safe
 func (ch *Channel) Close() {
 	if ch.ExitAndSet() {
-		fmt.Println("CLOSE")
 		if ch.Length() <= 0 {
 			close(ch.quitChan)
 		} else {
@@ -48,10 +47,11 @@ func (ch *Channel) Close() {
 }
 
 func (ch *Channel) Notify(msg string) {
+	// may be close channel panic
 	defer func() {
 		recover()
 	}()
-	// may be close channel panic
+
 	ch.msg <- msg
 }
 
@@ -117,7 +117,6 @@ func (ch *Channel) GetClient(uname string) *Client {
 	}
 	return nil
 }
-
 
 func (ch *Channel) Length() int {
 	ch.lock.RLock()
